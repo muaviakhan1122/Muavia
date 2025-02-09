@@ -4,7 +4,7 @@ import pyperclip
 import google.generativeai as genai
 
 # Configure the API
-genai.configure(api_key="AIzaSyBX6r9tX8Kmsjph68lmb1uD8FU8FD9rSNE")
+genai.configure(api_key="api key")
 model = genai.GenerativeModel("gemini-1.5-flash")
 
 # Click on the Opera icon at (649, 737)
