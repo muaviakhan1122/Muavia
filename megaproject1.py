@@ -2,14 +2,28 @@ import speech_recognition as sr
 import webbrowser
 import pyttsx3
 import os
+import sys
+import time
 import datetime
 import musiclibrary
-import requests 
+import requests  
+import google.generativeai as genai
 
+# Initialize recognizer & text-to-speech engine
 recognizer = sr.Recognizer()
 engine = pyttsx3.init()
-newsapi = "0f8c1818fae645ffb632113d9d04aa74"
+
+# API Keys
+newsapi = "0f8c1818fae645ffb632113d9d04aa74"  
+weather_api = "a93488f223194895ac045648250402"
+genai_key = "AIzaSyBTuIrqC--YeFH-55YqURCmIXRI3ROA7DI"  # Updated API Key
+
+# Configure AI Model
+genai.configure(api_key=genai_key)
+model = genai.GenerativeModel("gemini-1.5-flash")
+
 def speak(text):
+    """Speak the given text."""
     engine.say(text)
     engine.runAndWait()
 
@@ -22,86 +36,100 @@ def greet_user():
         speak("Good afternoon!")
     else:
         speak("Good evening!")
-    speak("How can I assist you today?")
-greet_user() 
-
-import google.generativeai as genai
+    speak("Orion is now active. How can I assist you?")
 
 def aiprocess(command):
-    genai.configure(api_key="AIzaSyBTuIrqC--YeFH-55YqURCmIXRI3ROA7DI")
-    model = genai.GenerativeModel("gemini-1.5-flash")
+    """Processes AI-based commands using Gemini API."""
     response = model.generate_content(
         command,
-        generation_config={"max_output_tokens": 50}  # Adjust this value for shorter responses
+        generation_config={"max_output_tokens": 50}
     )
-    speak(response.text)
-    print(response.text)
+    if response.text:
+        speak(response.text)
+        print(response.text)
+    else:
+        speak("I couldn't process that. Please try again.")
 
-def processcommand(c):
-    if "open google" in c.lower():
+def process_command(command):
+    """Handles user commands."""
+    command = command.lower()
+
+    if "open google" in command:
         webbrowser.open("https://google.com")
-    elif "open youtube" in c.lower():
+    elif "open youtube" in command:
         webbrowser.open("https://youtube.com")
-    elif "open facebook" in c.lower():
+    elif "open facebook" in command:
         webbrowser.open("https://facebook.com")
-    elif "open opera" in c.lower():
+    elif "open opera" in command:
         webbrowser.open("https://opera.com")
-    elif "open whatsapp" in c.lower():
+    elif "open whatsapp" in command:
         webbrowser.open("https://web.whatsapp.com")
-    elif c.lower().startswith("play"):
-        song = c.lower().split(" ")[1]
-        link = musiclibrary.music[song]
+    elif command.startswith("play"):
+        song = command.split(" ")[1]
+        link = musiclibrary.music.get(song, "No link found")
         webbrowser.open(link)
-    elif "tell me news" in c.lower():
-        r = requests.get(f"https://newsapi.org/v2/top-headlines?country=in&apiKey={newsapi}")
-        if r.status_code == 200:
-            data = r.json()  # Corrected variable name
-            articles = data.get("articles", [])
-            if articles:
-                speak("Here are the latest news headlines.")
-                for article in articles[:5]: 
-                    speak(article['title'])
-            else:
-                speak("Sorry, I couldn't find any news at the moment.")
-        else:
-            speak("Sorry, I am unable to fetch news right now.")
-    elif "tell me weather" in c.lower():
-        api_key = "a93488f223194895ac045648250402" 
-        city = "Lahore"  
-        url = f"http://api.weatherapi.com/v1/current.json?key={api_key}&q={city}&aqi=no"
-        response = requests.get(url)
-        if response.status_code == 200:
-            weather_data = response.json()
-            temp = weather_data["current"]["temp_c"]
-            description = weather_data["current"]["condition"]["text"]
-            speak(f"The current temperature in {city} is {temp} degrees Celsius with {description}.")
+    elif "tell me news" in command:
+        fetch_news()
+    elif "tell me weather" in command:
+        fetch_weather()
+    elif "restart" in command:
+        speak("Restarting the system now.")
+        print("Restarting...")
+        time.sleep(2)  # Give some time before restart
+        os.system("shutdown /r /t 1")  # Windows restart command
+        # For Linux/Mac, use: os.system("sudo reboot")
+    elif "shutdown" in command:
+        speak("Shutting down the system now.")
+        print("Shutting down...")
+        time.sleep(2)  # Give some time before shutdown
+        os.system("shutdown /s /t 1")  # Windows shutdown command
 
     else:
-        aiprocess(c)
-        speak(output)
-        #let openai handle the request
-        pass
-        
+        aiprocess(command)
+
+def fetch_news():
+    """Fetches and reads out the latest news headlines."""
+    r = requests.get(f"https://newsapi.org/v2/top-headlines?country=in&apiKey={newsapi}")
+    if r.status_code == 200:
+        data = r.json()
+        articles = data.get("articles", [])
+        if articles:
+            speak("Here are the latest news headlines.")
+            for article in articles[:5]:  
+                speak(article['title'])
+        else:
+            speak("Sorry, I couldn't find any news at the moment.")
+    else:
+        speak("Sorry, I am unable to fetch news right now.")
+
+def fetch_weather(city="Lahore"):
+    """Fetches current weather conditions."""
+    url = f"http://api.weatherapi.com/v1/current.json?key={weather_api}&q={city}&aqi=no"
+    response = requests.get(url)
+    if response.status_code == 200:
+        weather_data = response.json()
+        temp = weather_data["current"]["temp_c"]
+        description = weather_data["current"]["condition"]["text"]
+        speak(f"The current temperature in {city} is {temp} degrees Celsius with {description}.")
+    else:
+        speak("Unable to retrieve weather data.")
+
 if __name__ == "__main__":
+    greet_user()
     while True:
-        #listen for the word "jarvis" only 
-        r = sr.Recognizer()
-        print("Listening...")
-                   
-        # recognize speech using Sphinx
         try:
             with sr.Microphone() as source:
-                print("Recognizing...")
-                audio = r.listen(source, timeout=2,phrase_time_limit=2)
-            word = r.recognize_google(audio)
-            if(word.lower()== "orion"):
-                speak("Ya")
-                #listen for command
-                with sr.Microphone() as source:
-                    print("Orion Active...")
-                    audio = r.listen(source)
-                    command = r.recognize_google(audio)
-                    processcommand(command)
+                recognizer.adjust_for_ambient_noise(source)  # Reduce background noise
+                print("Listening for commands...")
+                audio = recognizer.listen(source, timeout=5)
+
+            command = recognizer.recognize_google(audio)
+            print(f"You said: {command}")
+            process_command(command)
+
+        except sr.UnknownValueError:
+            print("Sorry, I couldn't understand that.")
+        except sr.RequestError:
+            print("Could not request results, please check your internet connection.")
         except Exception as e:
-            print("Error; {0}".format(e))
-# AIzaSyBX6r9tX8Kmsjph68lmb1uD8FU8FD9rSNE
+            print(f"Error: {e}")
