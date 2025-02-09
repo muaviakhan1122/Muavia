@@ -14,9 +14,9 @@ recognizer = sr.Recognizer()
 engine = pyttsx3.init()
 
 # API Keys
-newsapi = "0f8c1818fae645ffb632113d9d04aa74"  
-weather_api = "a93488f223194895ac045648250402"
-genai_key = "AIzaSyBTuIrqC--YeFH-55YqURCmIXRI3ROA7DI"  # Updated API Key
+newsapi = "api key"  
+weather_api = "api key"
+genai_key = "api key"  # Updated API Key
 
 # Configure AI Model
 genai.configure(api_key=genai_key)
