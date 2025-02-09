@@ -3,50 +3,94 @@ import time
 import pyperclip
 import google.generativeai as genai
 
+sender_name = "Mama"
+
+# API key (Never expose API keys publicly)
+api_key = "api key
+
 # Configure the API
-genai.configure(api_key="api key")
-model = genai.GenerativeModel("gemini-1.5-flash")
+genai.configure(api_key=api_key)
 
-# Click on the Opera icon at (649, 737)
-pyautogui.click(649, 737)  # Opera icon
-time.sleep(1)  # Wait for the application to open
+pyautogui.click(649, 737)
+time.sleep(2)
 
-# Click and drag to select text
-pyautogui.moveTo(544, 164)
-pyautogui.mouseDown()
-pyautogui.moveTo(1314, 636, duration=1)  # Smooth drag
-pyautogui.mouseUp()
+def get_chat_history():
+    """Extracts the full chat history only once at the start."""
+    pyautogui.click(562, 167)  # Click on chat area
+    time.sleep(1)
 
-# Copy the selected text (Ctrl+C)
-pyautogui.hotkey('ctrl', 'c')
-time.sleep(0.5)  # Wait for the clipboard to update
+    pyautogui.mouseDown()
+    pyautogui.moveTo(1081, 615, duration=1)  # Drag to select text
+    pyautogui.mouseUp()
 
-# Get the copied text
-chat_history = pyperclip.paste()
+    pyautogui.hotkey('ctrl', 'c')
+    time.sleep(1)  # Ensure clipboard updates
 
-# Create messages structure for the AI model
-messages = [
-    {"role": "system", "content": "You are a person named Muavia who speaks Urdu as well as English. He is from Pakistan and is a student and class representative of class. You have to analyze chat history and talk and respond like Muavia"},
-    {"role": "user", "content": chat_history}
-]
+    return pyperclip.paste().strip()
 
-# Generate the response using the chat history
-response = model.generate_content(messages)  # Pass the entire messages list
+def get_last_message(chat_log, sender_name="Mama"):
+    """Extracts the last message from the given chat log."""
+    messages = chat_log.strip().split("\n")
+    last_message = None
 
-# Move to the position and click the chat input box
-pyautogui.click(1147, 695)
+    for msg in reversed(messages):
+        if sender_name in msg:
+            last_message = msg.split(":", 1)[-1].strip()
+            break
 
-# Wait a bit for the system to be ready
-time.sleep(1)
+    return last_message
 
-# Copy the response to the clipboard
-pyperclip.copy(response['content'])  # Extract the response content
+def is_last_message_from_sender(chat_log, sender_name="Mama"):
+    """Checks if the last message in the chat history is from the sender."""
+    messages = chat_log.strip().split("/2024]")[-1]  # Get last timestamped section
+    return sender_name in messages
 
-# Paste the text from the clipboard
-pyautogui.hotkey('ctrl', 'v')
+# Step 1: Extract Full Chat History First
+full_chat_history = get_chat_history()
+print("Full Chat History:\n", full_chat_history)
 
-# Wait a moment before pressing Enter
-time.sleep(1)
+# Step 2: Start Checking Only the Last Message
+while True:
+    # Step 2a: Extract only the latest message
+    last_message = get_last_message(full_chat_history, sender_name)
+    
+    if last_message:
+        print(f"{sender_name} asked: {last_message}")
+    else:
+        print(f"No message found from {sender_name}.")
+    
+    # Step 2b: Check if the last message is from Mama
+    if is_last_message_from_sender(full_chat_history):
+        print(f"Last message is from {sender_name}.")
 
-# Press Enter to send the message
-pyautogui.press('enter')
+        # Create a response prompt
+        prompt_text = f"""
+        Bro, tu Muavia hai jo doston aur family (Mama, Papa) se Urdu-English mix mai baat kar raha hai.  
+        Baatein natural rakhni hain, koi formality nahi.  
+        Sirf 1-2 lines ka short aur direct reply dena.  
+        Khud se topic change karna, lekin overthink nahi.  
+        Ab Muavia ki tarah short aur relaxed reply kar! (Do not use 'chill' more than once)
+        """
+        model = genai.GenerativeModel("gemini-1.5-flash")
+
+        # Generate response
+        response = model.generate_content([{"role": "user", "parts": [prompt_text]}])
+        response_text = response.text.strip() if response and response.text else "Error: No response from Gemini."
+
+        # Copy response to clipboard
+        pyperclip.copy(response_text)
+
+        # Move to message input box and paste the response
+        pyautogui.click(1147, 695)
+        time.sleep(1)
+
+        pyautogui.hotkey('ctrl', 'v')
+        pyautogui.press('enter')
+
+        print("Response Sent:", response_text)
+
+    else:
+        print(f"Last message is NOT from {sender_name}.")
+
+    # Delay before the next loop iteration
+    time.sleep(5)
