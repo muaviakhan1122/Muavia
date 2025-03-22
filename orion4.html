@@ -76,9 +76,9 @@ const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognit
 recognition.continuous = true;
 recognition.lang = "en-US";
 
-const NEWS_API = "0f8c1818fae645ffb632113d9d04aa74";
-const WEATHER_API = "a93488f223194895ac045648250402";
-const GEMINI_API = "AIzaSyBygYbUpztuT76GkpEigtIelEX_nJRBAkg";
+const NEWS_API = "API_KEY";
+const WEATHER_API = "API_KEY";
+const GEMINI_API = "API_KEY";
 
 function speak(text) {
     const utterance = new SpeechSynthesisUtterance(text);
